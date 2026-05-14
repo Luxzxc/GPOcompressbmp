@@ -3,7 +3,6 @@ import os
 import struct
 from PIL import Image
 
-# --- Существующие функции из вашего кода ---
 
 def load_bmp(path):
     img = Image.open(path).convert("RGB")
@@ -48,18 +47,15 @@ def rank_block(block, k):
         r = r * k + val
     return r
 
-# --- НОВЫЕ ФУНКЦИИ ДЛЯ РАСЖАТИЯ ---
 
 def unrank_block(r, k, m_sq):
-    """Обратное преобразование числа (ранга) в блок индексов."""
     block = []
     for _ in range(m_sq):
         block.append(r % k)
         r //= k
-    return block[::-1]  # Разворачиваем, так как при ранжировании умножали с конца
+    return block[::-1]
 
 def merge_blocks(blocks, width, height, block_size):
-    """Сборка индексов из блоков обратно в полотно изображения."""
     indices = [0] * (width * height)
     block_idx = 0
     for by in range(0, height, block_size):
@@ -76,7 +72,6 @@ def merge_blocks(blocks, width, height, block_size):
     return indices
 
 def decompress_image(compressed_path, output_bmp):
-    """Полный цикл восстановления из кастомного формата."""
     with open(compressed_path, "rb") as f:
         # Читаем метаданные
         w, h, k, m = struct.unpack(">IIII", f.read(16))
@@ -106,18 +101,17 @@ def decompress_image(compressed_path, output_bmp):
     save_bmp(output_bmp, w, h, pixels)
     print(f"Файл восстановлен в: {output_bmp}")
 
-# --- ОБНОВЛЕННЫЙ MAIN ---
 
 if __name__ == "__main__":
-    INPUT_FILE = "test.bmp"
-    COMPRESSED_FILE = "compressed.dat"
-    RESULT_FILE = "restored.bmp"
+    INPUT = "test.bmp"
+    COMPRESSED = "compressed.dat"
+    RESULT = "restored.bmp"
     
     if not os.path.exists(INPUT_FILE):
-        print(f"Положите файл {INPUT_FILE} в папку с кодом!")
+        print(f"Положите файл {INPUT} в папку с кодом")
     else:
         # 1. Сжатие
-        w, h, pixels = load_bmp(INPUT_FILE)
+        w, h, pixels = load_bmp(INPUT)
         palette, indices = build_palette(pixels)
         m = 4
         k = len(palette)
@@ -131,16 +125,16 @@ if __name__ == "__main__":
         compressed_ranks = lzma.compress(ranks_bytes) # Реальное сжатие
         
         # Запись своего формата файла (.dat)
-        with open(COMPRESSED_FILE, "wb") as f:
+        with open(COMPRESSED, "wb") as f:
             f.write(struct.pack(">IIII", w, h, k, m)) # Заголовок
             for color in palette:
                 f.write(bytes(color)) # Палитра
             f.write(compressed_ranks) # Данные
             
-        print(f"Сжато! Исходный: {os.path.getsize(INPUT_FILE)} байт, Сжатый: {os.path.getsize(COMPRESSED_FILE)} байт")
+        print(f"Исходный: {os.path.getsize(INPUT)} байт, Сжатый: {os.path.getsize(COMPRESSED)} байт")
 
-        original_size = os.path.getsize(INPUT_FILE)
-        compressed_size = os.path.getsize(COMPRESSED_FILE)
+        original_size = os.path.getsize(INPUT)
+        compressed_size = os.path.getsize(COMPRESSED)
 
         # Расчет коэффициентов
         compression_ratio = original_size / compressed_size
@@ -153,4 +147,4 @@ if __name__ == "__main__":
         print(f"Эффективность (Savings): {compression_percentage:.2f}%")
         
         # 2. Расжатие
-        decompress_image(COMPRESSED_FILE, RESULT_FILE)
+        decompress_image(COMPRESSED_FILE)
